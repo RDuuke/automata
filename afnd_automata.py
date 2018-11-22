@@ -1,4 +1,5 @@
 import graphviz as gv
+import time
 
 class afnd_automata:
     Q = []
@@ -23,33 +24,35 @@ class afnd_automata:
         for q in range(0, len(self.Q)):
             self.TableAFND[self.Q[q]] = {}
             for e in range(0, len(self.E)):
-                print("Agrega la transicion del estado [" + self.Q[q] + "] para el simbolo [" + self.E[
-                    e] + "]. nota: si son dos estados serpararlos por #")
+                print("Agrega la transición del estado [" + self.Q[q] + "] para el símbolo [" + self.E[
+                    e] + "]. nota: si son dos estados serpararlos por [#] Ej: q1#q2; y para agregar vacío el símbolo "
+                         "[-]")
                 state = input()
-                self.addAFNDTransition(self.Q[q], self.E[e], state)
-                if state.find("#") != -1:
-                    states = state.split("#")
-                    self.addTransitionAFNDDraw(self.Q[q], states[0], self.E[e])
-                    self.addTransitionAFNDDraw(self.Q[q], states[1], self.E[e])
-                    self.flag = True
-                    continue
-                elif state.find("-") != -1:
-                    self.flag = True
-                    continue
+                if not self.existAFND(state) and state.find("#") == -1 and state.find("-") == -1:
+                    print("Estado no válido")
+                    time.sleep(3)
+                    exit(0)
                 else:
-                    self.addTransitionAFNDDraw(self.Q[q], state, self.E[e])
+                    if state.find("#") != -1:
+                        states = state.split("#")
+                        for s in states:
+                            if not self.existAFND(s):
+                                print("Estado no válido")
+                                time.sleep(3)
+                                exit(0)
+                            self.addTransitionAFNDDraw(self.Q[q], s, self.E[e])
+                            self.flag = True
+                        self.addAFNDTransition(self.Q[q], self.E[e], state)
+                        continue
+                    elif state.find("-") != -1:
+                        self.addAFNDTransition(self.Q[q], self.E[e], state)
+                        self.flag = True
+                        continue
+                    else:
+                        self.addAFNDTransition(self.Q[q], self.E[e], state)
+                        self.addTransitionAFNDDraw(self.Q[q], state, self.E[e])
 
-    def printTable(self):
-        table = "______________________\n"
-        table = table + "|ESTADOS|"
-        for e in self.E:
-            table = table + "    %s    |" % e
-        table = table + "\n"
-        for t in self.TableAFND.keys():
-            table = table + "|   " + t + "  |   " + self.TableAFND[t]['a'] + "   |   " + self.TableAFND[t][
-                'b'] + "   |\n"
 
-        print(table)
 
     @property
     def isafnd(self):
@@ -85,15 +88,28 @@ class afnd_automata:
             for a in self.E:
                 if state_in.find("#") != -1:
                     t = []
+                    m = False
                     for s in state_in.split("#"):
                         n = str(self.getTransition(s, a))
+                        if n.find("#") != -1:
+                            for n2 in n.split("#"):
+                                if n2 in self.F:
+                                    m = True
+                                if any(n2 in string for string in t):
+                                    n = n.replace(n2, "")
+                        else:
+                            if n in self.F:
+                                m = True
+                        n = n.strip("#").lstrip("#")
                         if any(n in string for string in t):
                             continue
                         elif n == "-":
                             continue
                         else:
                             t.append(n)
-                    f = "#" . join(t)
+                    f = "#".join(t)
+                    if m:
+                        self.F.append(f)
                     self.addAFNTransition(state_in, a, f)
                     self.addTransitionAFNDraw(state_in, f, a)
                     self.loop(f)
@@ -127,11 +143,19 @@ class afnd_automata:
     def existAFN(self, state):
         return state in self.TableAFN
 
+    def existAFND(self, state):
+        return state in self.Q
+
     def addState(self, state):
         self.TableAFN[state] = {}
 
     def addAFNTransition(self, state_in, aphabet, state_go):
-        self.TableAFN[state_in].update({aphabet : state_go})
+        self.TableAFN[state_in].update({aphabet: state_go})
 
     def addAFNDTransition(self, state_in, aphabet, state_go):
-        self.TableAFND[state_in].update({aphabet : state_go})
+        self.TableAFND[state_in].update({aphabet: state_go})
+
+    def printTransition(self):
+        print(self.TableAFND)
+        print("------------------------------------------")
+        print(self.TableAFN)
